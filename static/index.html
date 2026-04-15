@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clasificación de Documentos</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== TOKENS ===== */
+    :root {
+      --navy:      #203c71;
+      --navy-mid:  #395da0;
+      --blue:      #1e4bb8;
+      --blue-lt:   #2d5fe0;
+      --gold:      #c9933a;
+      --gold-lt:   #f0b84a;
+      --surface:   #f5f6fa;
+      --white:     #ffffff;
+      --text:      #0f1f3d;
+      --muted:     #6b7a99;
+      --border:    #d2d9ea;
+      --shadow:    0 4px 24px rgba(15,31,61,.10);
+      --radius:    12px;
+      --font-head: "DM Serif Display", Georgia, serif;
+      --font-body: "DM Sans", system-ui, sans-serif;
+      --ease:      cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ===== RESET ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: var(--navy);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(74, 112, 208, 0.258);
+    }
+
+    .header-icon {
+      width: 44px; height: 44px;
+      background: var(--gold);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .header-icon svg { width: 24px; height: 24px; fill: var(--white); }
+
+    header h1 {
+      font-family: var(--font-head);
+      font-size: 1.45rem;
+      color: var(--white);
+      letter-spacing: .01em;
+    }
+
+    header p {
+      font-size: .8rem;
+      color: rgba(255,255,255,.55);
+      margin-top: 2px;
+      font-weight: 300;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 64px;
+      gap: 32px;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 680px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .card-header {
+      background: var(--navy-mid);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-header svg { width: 20px; height: 20px; fill: var(--gold-lt); flex-shrink: 0; }
+
+    .card-header h2 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      color: var(--white);
+      font-weight: 400;
+    }
+
+    .card-body { padding: 28px; }
+
+    /* ===== FORM FIELDS ===== */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 24px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    label .req { color: var(--gold); margin-left: 2px; }
+
+    input, select {
+      font-family: var(--font-body);
+      font-size: .95rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      width: 100%;
+      transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+      outline: none;
+      appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%236b7a99'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue-lt);
+      box-shadow: 0 0 0 3px rgba(45,95,224,.12);
+      background: var(--white);
+    }
+
+    .char-count {
+      font-size: .72rem;
+      color: var(--muted);
+      text-align: right;
+      margin-top: -2px;
+      transition: color .2s;
+    }
+
+    .char-count.warn { color: var(--gold); }
+    .char-count.over { color: #d93636; }
+
+    /* ===== SUBMIT BUTTON ===== */
+    .btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 28px;
+    }
+
+    .btn-submit {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--white);
+      background: var(--blue);
+      border: none;
+      border-radius: 10px;
+      padding: 14px 48px;
+      cursor: pointer;
+      letter-spacing: .04em;
+      position: relative;
+      overflow: hidden;
+      transition: background .2s var(--ease), transform .15s var(--ease), box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(30,75,184,.35);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: var(--blue-lt);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(30,75,184,.4);
+    }
+
+    .btn-submit:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-submit:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-submit .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .btn-submit.loading .spinner { display: inline-block; }
+    .btn-submit.loading .btn-text { opacity: .8; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== ERROR ===== */
+    .error-box {
+      display: none;
+      background: #fff0f0;
+      border: 1.5px solid #f5a0a0;
+      color: #c0392b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: .88rem;
+      margin-top: 16px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .error-box.visible { display: flex; }
+    .error-box svg { width: 18px; height: 18px; fill: #c0392b; flex-shrink: 0; }
+
+    /* ===== RESULTS CARD ===== */
+    .results-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 680px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .4s var(--ease), transform .4s var(--ease);
+      pointer-events: none;
+    }
+
+    .results-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .results-header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .results-header svg { width: 22px; height: 22px; fill: var(--gold-lt); flex-shrink: 0; }
+
+    .results-header h2 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      color: var(--white);
+      font-weight: 400;
+    }
+
+    .results-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ===== RESULT ITEM ===== */
+    .result-item {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      transition: border-color .2s, box-shadow .2s;
+      animation: fadeSlide .4s var(--ease) both;
+    }
+
+    .result-item:nth-child(1) { animation-delay: .05s; }
+    .result-item:nth-child(2) { animation-delay: .12s; }
+    .result-item:nth-child(3) { animation-delay: .19s; }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .result-item:hover { border-color: var(--blue-lt); box-shadow: 0 2px 12px rgba(30,75,184,.1); }
+
+    .rank-badge {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .rank-1 { background: var(--gold);    color: var(--white); }
+    .rank-2 { background: #8499cc;       color: var(--white); }
+    .rank-3 { background: #b0bacf;       color: var(--white); }
+
+    .result-info { min-width: 0; }
+
+    .result-name {
+      font-weight: 600;
+      font-size: .97rem;
+      color: var(--navy);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-scores {
+      display: flex;
+      gap: 12px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+
+    .score-tag {
+      font-size: .72rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(30,75,184,.08);
+      color: var(--blue);
+    }
+
+    .score-tag.hist { background: rgba(201,147,58,.1); color: var(--gold); }
+    .score-tag.alpha { background: rgba(15,31,61,.07); color: var(--muted); }
+
+    /* probability bar */
+    .prob-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      min-width: 70px;
+    }
+
+    .prob-pct {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      color: var(--navy);
+    }
+
+    .prob-bar-track {
+      width: 68px; height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--gold-lt) 100%);
+      transition: width .6s var(--ease);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: var(--navy);
+      color: rgba(255,255,255,.4);
+      text-align: center;
+      font-size: .75rem;
+      padding: 16px 20px;
+      margin-top: auto;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 540px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      header { padding: 16px 20px; }
+      .card-body, .results-body { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-icon">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+  </div>
+  <div>
+    <h1>Clasificación de Documentos</h1>
+    <p>A partir de información de entrada como: Remitente, Tipo de documento, Asunto y Fecha de ingreso, el modelo híbrido de IA genera como salida una recomendación de hasta 3 posibles responsables.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- FORMULARIO -->
+  <div class="card">
+    <div class="card-header">
+      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      <h2>Datos del Documento</h2>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+
+        <!-- ASUNTO -->
+        <div class="field full">
+          <label for="asunto">Asunto del Documento <span class="req">*</span></label>
+          <input
+            type="text"
+            id="asunto"
+            maxlength="512"
+            placeholder="Ingrese el asunto del documento…"
+            autocomplete="off"
+          />
+          <span class="char-count" id="asunto-count">0 / 512</span>
+        </div>
+
+        <!-- REMITENTE -->
+        <div class="field">
+          <label for="remitente">Remitente <span class="req">*</span></label>
+          <input
+            type="text"
+            id="remitente"
+            maxlength="90"
+            placeholder="Nombre del remitente"
+            autocomplete="off"
+          />
+          <span class="char-count" id="remitente-count">0 / 90</span>
+        </div>
+
+        <!-- TIPO DOC -->
+        <div class="field">
+          <label for="tipo_doc">Tipo de Documento <span class="req">*</span></label>
+          <select id="tipo_doc">
+            <option value="">— Seleccione —</option>
+            <option value="CARTA">Carta</option>
+            <option value="MEMORANDO">Memorando</option>
+            <option value="OFICIO">Oficio</option>
+          </select>
+        </div>
+
+        <!-- FECHA -->
+        <div class="field">
+          <label for="fecha">Fecha de Ingreso <span class="req">*</span></label>
+          <input type="date" id="fecha" />
+        </div>
+
+      </div><!-- /.form-grid -->
+
+      <!-- ERROR -->
+      <div class="error-box" id="error-box">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <span id="error-msg">Ocurrió un error.</span>
+      </div>
+
+      <!-- BOTÓN -->
+      <div class="btn-wrap">
+        <button class="btn-submit" id="btn-submit" type="button">
+          <span class="spinner"></span>
+          <span class="btn-text">Enviar</span>
+        </button>
+      </div>
+
+    </div><!-- /.card-body -->
+  </div><!-- /.card -->
+
+  <!-- RESULTADOS -->
+  <div class="results-card" id="results-card">
+    <div class="results-header">
+      <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>
+      <h2>Responsables Sugeridos</h2>
+    </div>
+    <div class="results-body" id="results-body">
+      <!-- Inyectado por JS -->
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  &copy; 2026 · Sistema de Clasificación de Documentos · Modelo Híbrido BETO · Pablo Agreda 
+</footer>
+
+<script>
+  // ==============================
+  // Configuración
+  // ==============================
+  const API_URL = window.location.origin + "/predict";   // ← ajusta si el backend está en otro host/puerto
+
+  // ==============================
+  // Helpers de caracteres
+  // ==============================
+  function wireCharCount(inputId, countId, max) {
+    const input = document.getElementById(inputId);
+    const count = document.getElementById(countId);
+    input.addEventListener("input", () => {
+      const len = input.value.length;
+      count.textContent = `${len} / ${max}`;
+      count.className = "char-count" + (len >= max ? " over" : len >= max * 0.85 ? " warn" : "");
+    });
+  }
+
+  wireCharCount("asunto",    "asunto-count",    512);
+  wireCharCount("remitente", "remitente-count",  90);
+
+  // ==============================
+  // Fecha por defecto = hoy
+  // ==============================
+  (function setDefaultDate() {
+    const today = new Date();
+    const yyyy  = today.getFullYear();
+    const mm    = String(today.getMonth() + 1).padStart(2, "0");
+    const dd    = String(today.getDate()).padStart(2, "0");
+    document.getElementById("fecha").value = `${yyyy}-${mm}-${dd}`;
+  })();
+
+  // ==============================
+  // Utilidades UI
+  // ==============================
+  function setError(msg) {
+    const box     = document.getElementById("error-box");
+    const msgSpan = document.getElementById("error-msg");
+    if (msg) {
+      msgSpan.textContent = msg;
+      box.classList.add("visible");
+    } else {
+      box.classList.remove("visible");
+    }
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById("btn-submit");
+    btn.disabled = on;
+    btn.classList.toggle("loading", on);
+  }
+
+  // ==============================
+  // Render resultados
+  // ==============================
+  function renderResults(responsables) {
+    const body = document.getElementById("results-body");
+    body.innerHTML = "";
+
+    if (!responsables || responsables.length === 0) {
+      body.innerHTML = `<p style="color:var(--muted);text-align:center;padding:16px;">
+        No se encontraron responsables.</p>`;
+    } else {
+      const rankClass = ["rank-1", "rank-2", "rank-3"];
+      const rankLabel = ["1°", "2°", "3°"];
+
+      responsables.forEach((r, i) => {
+        const pct    = Math.round(r.probabilidad_pct);
+        const barPct = Math.min(100, pct);
+
+        const item = document.createElement("div");
+        item.className = "result-item";
+        item.innerHTML = `
+          <div class="rank-badge ${rankClass[i]}">${rankLabel[i]}</div>
+          <div class="result-info">
+            <div class="result-name" title="${r.responsable}">${r.responsable}</div>
+            <div class="result-scores">
+              <span class="score-tag">Modelo: ${(r.score_modelo * 100).toFixed(1)}%</span>
+              <span class="score-tag hist">Histór.: ${(r.score_historico * 100).toFixed(1)}%</span>
+              <span class="score-tag alpha">α = ${r.alpha.toFixed(2)}</span>
+            </div>
+          </div>
+          <div class="prob-wrap">
+            <span class="prob-pct">${pct}%</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill" style="width:${barPct}%"></div>
+            </div>
+          </div>`;
+        body.appendChild(item);
+      });
+    }
+
+    // Mostrar card con animación
+    const card = document.getElementById("results-card");
+    card.classList.add("visible");
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ==============================
+  // Submit
+  // ==============================
+  document.getElementById("btn-submit").addEventListener("click", async () => {
+    setError(null);
+
+    const asunto    = document.getElementById("asunto").value.trim();
+    const remitente = document.getElementById("remitente").value.trim();
+    const tipo_doc  = document.getElementById("tipo_doc").value;
+    const fecha     = document.getElementById("fecha").value;
+
+    // Validación frontend
+    if (!asunto)    return setError("Por favor ingrese el Asunto del Documento.");
+    if (!remitente) return setError("Por favor ingrese el Remitente.");
+    if (!tipo_doc)  return setError("Por favor seleccione el Tipo de Documento.");
+    if (!fecha)     return setError("Por favor seleccione la Fecha.");
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(API_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asunto, remitente, tipo_doc, fecha }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const detail = data.detail || `Error ${response.status}`;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
+
+      renderResults(data.responsables);
+
+    } catch (err) {
+      if (err instanceof TypeError) {
+        setError("No se pudo conectar con el servidor. Verifique que el backend esté activo.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>

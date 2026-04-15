@@ -1,0 +1,3 @@
+app/model_weights.pt
+app/model_artifacts.pkl
+app/BERT_Model_Cache/
