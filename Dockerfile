@@ -12,8 +12,8 @@ COPY app/ ./app/
 COPY static/ ./static/
 
 # Descargar modelos desde Hugging Face Hub
-RUN curl -L -o app/model_weights.pt https://huggingface.co/pagredadiaz/clasificacion-documentos-modelos/resolve/main/model_weights.pt
-RUN curl -L -o app/model_artifacts.pkl https://huggingface.co/pagredadiaz/clasificacion-documentos-modelos/resolve/main/model_artifacts.pkl
+RUN curl -L -o model_weights.pt https://huggingface.co/pagredadiaz/clasificacion-documentos-modelos/resolve/main/model_weights.pt
+RUN curl -L -o model_artifacts.pkl https://huggingface.co/pagredadiaz/clasificacion-documentos-modelos/resolve/main/model_artifacts.pkl
 
 EXPOSE 7860
 

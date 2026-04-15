@@ -528,7 +528,7 @@ class PrediccionResponse(BaseModel):
 # =========================
 @app.get("/", tags=["Health"])
 def root():
-    return FileResponse("../static/index.html")
+    return FileResponse("./static/index.html")
 
 
 @app.get("/health", tags=["Health"])
